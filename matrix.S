@@ -10,7 +10,6 @@
 .global beziermatrix
 .global hermitematrix
 .global blankmatrix
-.global clearedges
 
 .global one
 .global zero
@@ -242,7 +241,3 @@ multiplymatrix: //multiplies matrix1 rdi, matrix2 rsi, stores resulting matrix i
     popq %r14
     popq %r13
     ret
-clearedges://clears all points from the edge matrix rdi, merely by telling it that it has 0 points
-    movq $0, 24(%rdi)
-    ret
-

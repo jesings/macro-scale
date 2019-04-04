@@ -4,6 +4,11 @@
     viewvect: .double 0, 1, 0, 0
 .bss
 .text
+.macro movsd3 a,b,c
+    movsd \a(%rsp), %xmm0
+    movsd \b(%rsp), %xmm1
+    movsd \c(%rsp), %xmm2
+.endm
 addtri://%ymm0, %ymm1, %ymm2
     mov trim(%rip), %rdi
     sub $64, %rsp
@@ -12,16 +17,20 @@ addtri://%ymm0, %ymm1, %ymm2
     vpermq $0b01, %ymm0, %ymm1
     vpermq $0b10, %ymm0, %ymm2
     call addpoint
-    movsd (%rsp), %xmm0
-    movsd 8(%rsp), %xmm1
-    movsd 16(%rsp), %xmm2
+    movsd3 0,8,16
     call addpoint
-    movsd 32(%rsp), %xmm0
-    movsd 40(%rsp), %xmm1
-    movsd 48(%rsp), %xmm2
+    movsd3 32,40,48
     call addpoint
     add $64, %rsp
     ret
+.macro bresenhamcaller a,b,c,d
+    mov $0xffffff, %rdi
+    movsxd \a(%rsp), %rsi
+    movsxd \b(%rsp), %rdx
+    movsxd \c(%rsp), %rcx
+    movsxd \d(%rsp), %r8
+    call bresenham
+.endm
 drawtri://first point in ymm0, second point in ymm1, third point in ymm2
     sub $136,%rsp
     vmovups %ymm0,(%rsp)
@@ -42,24 +51,9 @@ drawtri://first point in ymm0, second point in ymm1, third point in ymm2
     movlps %xmm0, (%rsp)
     movlps %xmm1, 8(%rsp)
     movlps %xmm2, 16(%rsp)
-    mov $0xffffff, %rdi
-    movsxd (%rsp), %rsi
-    movsxd 4(%rsp), %rdx
-    movsxd 8(%rsp), %rcx
-    movsxd 12(%rsp), %r8
-    call bresenham
-    mov $0xffffff, %rdi
-    movsxd 16(%rsp), %rsi
-    movsxd 20(%rsp), %rdx
-    movsxd 8(%rsp), %rcx
-    movsxd 12(%rsp), %r8
-    call bresenham
-    mov $0xffffff, %rdi
-    movsxd 16(%rsp), %rsi
-    movsxd 20(%rsp), %rdx
-    movsxd (%rsp), %rcx
-    movsxd 4(%rsp), %r8
-    call bresenham
+    bresenhamcaller 0,4,8,12
+    bresenhamcaller 16,20,8,12
+    bresenhamcaller 16,20,0,4
     enddraw:
     add $136, %rsp
     ret

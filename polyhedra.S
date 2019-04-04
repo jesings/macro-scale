@@ -8,6 +8,23 @@
     pointo3: .double .1256637061
 .bss
 .text
+.macro twosides a,b,c
+    vmovapd %ymm4, %ymm0
+    vaddpd %ymm\b, %ymm4, %ymm1
+    vaddpd %ymm\c, %ymm4, %ymm2
+    vaddpd %ymm\b, %ymm4, %ymm3
+    vaddpd %ymm\c, %ymm3, %ymm3
+    call quadrilateralface
+    vaddpd %ymm4, %ymm\a, %ymm0
+    vaddpd %ymm\b, %ymm4, %ymm2
+    vaddpd %ymm\a, %ymm2, %ymm2
+    vaddpd %ymm\c, %ymm4, %ymm1
+    vaddpd %ymm\a, %ymm1, %ymm1
+    vaddpd %ymm\b, %ymm4, %ymm3
+    vaddpd %ymm\c, %ymm3, %ymm3
+    vaddpd %ymm\a, %ymm3, %ymm3
+    call quadrilateralface
+.endm
 makebox://X,Y,Z in xmm0-2, h,w,d in xmm3-5
     //½ box
     sub $32, %rsp
@@ -30,53 +47,11 @@ makebox://X,Y,Z in xmm0-2, h,w,d in xmm3-5
     vmovups (%rsp), %ymm4
     add $32, %rsp
     //front and back
-    vmovapd %ymm4, %ymm0
-    vaddpd %ymm5, %ymm4, %ymm1
-    vaddpd %ymm6, %ymm4, %ymm2
-    vaddpd %ymm5, %ymm4, %ymm3
-    vaddpd %ymm6, %ymm3, %ymm3
-    call quadrilateralface
-    vaddpd %ymm4, %ymm7, %ymm0
-    vaddpd %ymm5, %ymm4, %ymm2
-    vaddpd %ymm7, %ymm2, %ymm2
-    vaddpd %ymm6, %ymm4, %ymm1
-    vaddpd %ymm7, %ymm1, %ymm1
-    vaddpd %ymm5, %ymm4, %ymm3
-    vaddpd %ymm6, %ymm3, %ymm3
-    vaddpd %ymm7, %ymm3, %ymm3
-    call quadrilateralface
+    twosides 7,5,6
     //top and bottom
-    vmovapd %ymm4, %ymm0
-    vaddpd %ymm5, %ymm4, %ymm2
-    vaddpd %ymm7, %ymm4, %ymm1
-    vaddpd %ymm5, %ymm4, %ymm3
-    vaddpd %ymm7, %ymm3, %ymm3
-    call quadrilateralface
-    vaddpd %ymm4, %ymm6, %ymm0
-    vaddpd %ymm5, %ymm4, %ymm1
-    vaddpd %ymm6, %ymm1, %ymm1
-    vaddpd %ymm7, %ymm4, %ymm2
-    vaddpd %ymm6, %ymm2, %ymm2
-    vaddpd %ymm5, %ymm4, %ymm3
-    vaddpd %ymm6, %ymm3, %ymm3
-    vaddpd %ymm7, %ymm3, %ymm3
-    call quadrilateralface
+    twosides 6,7,5
     //sides
-    vmovapd %ymm4, %ymm0
-    vaddpd %ymm6, %ymm4, %ymm1
-    vaddpd %ymm7, %ymm4, %ymm2
-    vaddpd %ymm6, %ymm4, %ymm3
-    vaddpd %ymm7, %ymm3, %ymm3
-    call quadrilateralface
-    vaddpd %ymm4, %ymm5, %ymm0
-    vaddpd %ymm6, %ymm4, %ymm2
-    vaddpd %ymm5, %ymm2, %ymm2
-    vaddpd %ymm7, %ymm4, %ymm1
-    vaddpd %ymm5, %ymm1, %ymm1
-    vaddpd %ymm6, %ymm4, %ymm3
-    vaddpd %ymm7, %ymm3, %ymm3
-    vaddpd %ymm5, %ymm3, %ymm3
-    call quadrilateralface
+    twosides 5,6,7
     ret
 quadrilateralface:
     sub $176, %rsp
@@ -128,7 +103,7 @@ roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
     lea blankmatrix(%rip), %rax
     call forcematrix
     vmovsd 8(%rsp), %xmm0
-    call sin@PLT
+    call sin2
     vmovsd %xmm0, 24(%rsp)
     vmovsd 8(%rsp), %xmm0
     call cos2
@@ -162,6 +137,23 @@ roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
     call multiplymatrix
     add $32, %rsp
     ret
+.macro doquad a,b,c,d
+    vmovupd \a(%rax, %rdx,8), %ymm0
+    vmovupd \b(%rax, %rdx,8), %ymm1
+    vmovupd \c(%rax, %rdx,8), %ymm2
+    vmovupd \d(%rax, %rdx,8), %ymm3
+.endm
+.macro dotri a,b,c,d
+    vmovupd \a(%rax, %rdx,8), %ymm0
+    vmovupd \b(%rax, %rdx,8), %ymm1
+    vmovupd \c(%rax, %rdx,8), %ymm2
+    push %rax
+    push %rdx
+    call addtri
+    pop %rdx
+    pop %rax
+    add $4, %rdx
+.endm
     
 maketorus:
     mov %rdi, %r15
@@ -169,10 +161,7 @@ maketorus:
     call gentorus
     xor %rdx, %rdx
     twohunnid2:
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd 32(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 1632(%rax, %rdx,8), %ymm3
+    doquad 0,32,1600,1632
     push %rax
     push %rdx
     call quadrilateral
@@ -187,10 +176,7 @@ maketorus:
     add $4, %rdx
     cmp $48, %r8
     jne donetorus
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd -1568(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 32(%rax, %rdx,8), %ymm3
+    doquad 0,-1568,1600,32
     push %rax
     push %rdx
     call quadrilateral
@@ -212,31 +198,12 @@ makesphere:
     call gensphere
     mov $0, %rdx
     cap:
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 1632(%rax, %rdx,8), %ymm1
-    push %rax
-    push %rdx
-    call addtri
-    pop %rdx
-    pop %rax
-    add $4, %rdx
+    dotri 0,1632,1600
     cmp $196, %rdx
     jl cap
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 32(%rax, %rdx,8), %ymm1
-    push %rax
-    push %rdx
-    call addtri
-    pop %rdx
-    pop %rax
-    add $4, %rdx
+    dotri 0,1632,1600
     twohunnid:
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd 32(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 1632(%rax, %rdx,8), %ymm3
+    doquad 0,32,1600,1632
     push %rax
     push %rdx
     call quadrilateral
@@ -251,22 +218,16 @@ makesphere:
     add $4, %rdx
     cmp $48, %r8
     jne over
-    vmovupd 32(%rax, %rdx,8), %ymm0
-    vmovupd 64(%rax, %rdx,8), %ymm1
-    vmovupd 1632(%rax, %rdx,8), %ymm2
-    vmovupd 1664(%rax, %rdx,8), %ymm3
     cmp $4792, %rdx
     jge nodont
+    doquad 32,64,1632,1664
     push %rax
     push %rdx
     call quadrilateral
     pop %rdx
     pop %rax
     nodont:
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd -1568(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    vmovupd 32(%rax, %rdx,8), %ymm3
+    doquad 0,-1568,1600,32
     push %rax
     push %rdx
     call quadrilateral
@@ -277,23 +238,10 @@ makesphere:
     cmp $4800, %rdx
     jl twohunnid
     bottom:
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd 32(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    push %rax
-    push %rdx
-    call addtri
-    pop %rdx
-    pop %rax
-    add $4, %rdx
+    dotri 0,32,1600
     cmp $4996, %rdx
     jl bottom
-    vmovupd (%rax, %rdx,8), %ymm0
-    vmovupd -1568(%rax, %rdx,8), %ymm1
-    vmovupd 1600(%rax, %rdx,8), %ymm2
-    push %rax
-    call addtri
-    pop %rax
+    dotri 0,-1568,1600
     mov %rax, %rdi
     call free@PLT
     pop %r15

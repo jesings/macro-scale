@@ -57,12 +57,12 @@ makecircle://Draws a circle on the screen xmm0,xmm1,xmm2 is the center x,y,z, th
     movsd %xmm12, %xmm0
     addsd pio2(%rip), %xmm0
     movsd %xmm12, 24(%rsp)
-    call sin@PLT
+    call sin2
     movsd 24(%rsp),%xmm12
     movsd %xmm0, 16(%rsp)
     movsd %xmm12, %xmm0
     movsd %xmm12, 24(%rsp)
-    call sin@PLT
+    call sin2
     movsd 24(%rsp),%xmm12
     movsd %xmm0, %xmm1
     movsd 16(%rsp), %xmm0
@@ -79,12 +79,12 @@ makecircle://Draws a circle on the screen xmm0,xmm1,xmm2 is the center x,y,z, th
     xor %rax, %rax
     addsd pio2(%rip), %xmm0
     movsd %xmm12, 24(%rsp)
-    call sin@PLT
+    call sin2
     movsd 24(%rsp),%xmm12
     movsd %xmm0, 16(%rsp)
     movsd %xmm12, %xmm0
     movsd %xmm12, 24(%rsp)
-    call sin@PLT
+    call sin2
     movsd 24(%rsp),%xmm12
     movsd %xmm0, %xmm1
     movsd 16(%rsp), %xmm0

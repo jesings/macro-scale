@@ -32,10 +32,15 @@ genmanipulate:
     call *%rax
     mov %r12, %rdi
     mov matrixstart(%rip), %rsi
-    mov 24(%rdi), %rax
-    xchg %rax, 24(%rsi)
-    mov  %rax, 24(%rdi)
+    mov 24(%rsi), %rax
+    xchg %rax, 24(%rdi)
+    mov  %rax, 24(%rsi)
+    mov (%rsi), %rax
+    xchg %rax, (%rdi)
+    mov  %rax, (%rsi)
     call multiplymatrix
+    mov %r12, %rdi
+    call freematrix
     pop %r12
     ret
 dilate://takes 3 params, x,y,z dilation in %xmm0-2, takes matrix in %rdi
@@ -48,49 +53,36 @@ transform://takes 3 params, x,y,z offset in %xmm0-2, takes matrix in %rdi
     movsd %xmm1, 104(%rdi)
     movsd %xmm2, 112(%rdi)
     ret
-rotatez://takes 1 param
-    movsd %xmm0, (%rdi)
+.macro rotall a,b,c,d
+    movsd %xmm0, \a(%rdi)
     movsd 16(%rsp), %xmm0
-    movsd %xmm0, 8(%rdi)
+    movsd %xmm0, \b(%rdi)
     movsd 16(%rsp), %xmm1
     xorpd %xmm0, %xmm0
     subsd %xmm1, %xmm0
-    movsd %xmm0, 32(%rdi)
+    movsd %xmm0, \c(%rdi)
     movsd 24(%rsp), %xmm0
-    movsd %xmm0, 40(%rdi)
+    movsd %xmm0, \d(%rdi)
+.endm
+rotatez://takes 1 param
+    rotall 0,8,32,40
     ret
 rotatex://takes 1 param
-    movsd %xmm0, 40(%rdi)
-    movsd 16(%rsp), %xmm0
-    movsd %xmm0, 48(%rdi)
-    movsd 16(%rsp), %xmm1
-    xorpd %xmm0, %xmm0
-    subsd %xmm1, %xmm0
-    movsd %xmm0, 72(%rdi)
-    movsd 24(%rsp), %xmm0
-    movsd %xmm0, 80(%rdi)
+    rotall 40,48,72,80
     ret
 rotatey://takes 1 param
-    movsd %xmm0, (%rdi)
-    movsd 16(%rsp), %xmm0
-    movsd %xmm0, 64(%rdi)
-    movsd 16(%rsp), %xmm1
-    xorpd %xmm0, %xmm0
-    subsd %xmm1, %xmm0
-    movsd %xmm0, 16(%rdi)
-    movsd 24(%rsp), %xmm0
-    movsd %xmm0, 80(%rdi)
+    rotall 0,64,16,80
     ret
 genrotate:
-    mov %rdi, matrixstart(%rip)
     push %r12
+    mov %rdi, matrixstart(%rip)
     sub $24, %rsp
     push %rax
     movsd %xmm0, 8(%rsp)
-    call sin@PLT
+    call sin2
     movsd %xmm0, 16(%rsp)
     movsd 8(%rsp), %xmm0
-    call cos@PLT
+    call cos2
     movsd %xmm0, 24(%rsp)
     mov $4, %rdi
     mov $4, %rsi
@@ -104,6 +96,9 @@ genrotate:
     call *%rax
     mov %r12, %rdi
     mov matrixstart(%rip), %rsi
+    mov (%rsi), %rax
+    xchg %rax, (%rdi)
+    mov %rax, (%rsi)
     call multiplymatrix
     mov %r12, %rdi
     call freematrix
