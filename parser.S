@@ -1,8 +1,8 @@
-.macro cspeek
+.macro cspeek//Peek at the top of the coordinate system stack
     mov cstop(%rip), %rdi
     mov (%rdi), %rdi
 .endm
-.macro argy numargs
+.macro argy numargs//get numargs args from global args, and put them into xmm registers in reverse order
     call inpstream
     lea buf(%rip), %rdi
     mov $\numargs, %rsi
@@ -13,14 +13,14 @@
     .altmacro
     argshelper %(\numargs-1), 0
 .endm
-.macro argshelper regn, argo
+.macro argshelper regn, argo//This just writes the code for putting the args into xmm registers in reverse order
 .altmacro
     movsd \argo(%r8), %xmm\regn
     .if \regn
         argshelper %(\regn-1), %(\argo+8)
     .endif
 .endm
-.macro applytris
+.macro applytris//Applies the current top of the coordinate system to the triangle matrix
     cspeek
     mov trim(%rip), %rsi
     call multiplymatrix
@@ -28,7 +28,7 @@
     mov trim(%rip), %rdi
     movq $0, 24(%rdi)
 .endm
-.macro applyedges
+.macro applyedges//Same as above function but for edge matrices
     cspeek
     mov edgem(%rip), %rsi
     call multiplymatrix
@@ -38,26 +38,26 @@
     mov edgem(%rip), %rdi
     movq $0, 24(%rdi)
 .endm
-.macro calctoken token, fxn
+.macro calctoken token, fxn//call fxn if the string pointed to by token is equivalent to the string that was just input
     lea \token(%rip), %rsi
     call mstrcmp
     test %rax, %rax
     jne \fxn
 .endm
-.macro manipulatefxn arg0,arg1,labelname
-    lea \arg0(%rip), %rsi
+.macro manipulatefxn token,manip,labelname//calls genmanipulate with either translate or scale in manip if the token stuff as discussed above work. Labelname needs to be unique from all other labelnames in all other kinds of functions like this
+    lea \token(%rip), %rsi
     call mstrcmp
     test %rax, %rax
     je \labelname
     argy 3
     cspeek
-    lea \arg1(%rip), %rax
+    lea manip(%rip), %rax
     call genmanipulate
     jmp afterl
     \labelname:
 .endm
-.macro shapefxn word, num, makefxn, apply, labelname, matrix
-    lea \word(%rip), %rsi
+.macro shapefxn token, num, makefxn, apply, labelname, matrix//calls a function to draw a shape (line,box,sphere,torus,circle) in mkfxn if token stuff works, gathers the numbers of args specified as numargs, applies them to the proper matrix, either trim or edgem, labelname is still unique
+    lea \token(%rip), %rsi
     call mstrcmp
     test %rax, %rax
     je \labelname
@@ -68,7 +68,7 @@
     jmp afterl
     \labelname:
 .endm
-.macro splinefxn word, matrixname, labelname
+.macro splinefxn word, matrixname, labelname//generates a spline (specified by which spline matrix to use, either beziermatrix or hermitematrix) if token stuff works, unique labelname
     lea \word(%rip), %rsi
     call mstrcmp
     test %rax, %rax
@@ -81,7 +81,7 @@
     jmp afterl
     \labelname:
 .endm
-.macro csparse word, csfunc, labelname
+.macro csparse word, csfunc, labelname//pops or pushes from cs stack if tokenstuff works, unique labelname
     lea \word(%rip), %rsi
     call mstrcmp
     test %rax, %rax
@@ -114,8 +114,7 @@
     lens: .zero 64
     streamdone: .byte 0
 .text
-//make a helper function to gather args
-rotatel:
+rotatel://Rotates by either x, y, or z, depending -- complex args parsing necessary
     call inpstream
     lea buf(%rip),%rdi
     mov $2, %rsi
@@ -143,7 +142,7 @@ rotatel:
     cspeek
     call genrotate
     jmp afterl
-.macro destroyfile a,b,c
+.macro destroyfile a,b,c//removes the temporary file created for either display or save
     movups %xmm0, \a(%rdi)
     movb $0x20, \b(%rdi)
     vmovups %ymm1, \c(%rdi)
@@ -153,14 +152,14 @@ rotatel:
     syscall//remove temporary file
     jmp afterl
 .endm
-displayl:
+displayl://Displays the image
     lea name(%rip), %rdi
     call pr
     vmovups name(%rip), %ymm1
     movsd display(%rip),%xmm0
     lea buf(%rip), %rdi
     destroyfile 0,7,8
-savel:
+savel://saves the image into the proper filename, which is unfortunately capped at 31 chars
     lea name(%rip), %rdi
     call pr
     call inpstream
@@ -169,7 +168,6 @@ savel:
     movsd %xmm0, buf(%rip)
     lea buf(%rip), %rdi
     movb $0x20, 7(%rdi)
-    //filename is limited to 31 characters
     movups name(%rip), %xmm0
     destroyfile 8,19,20
 inpstream://file descriptor in parsefd(%rip), returns a string in %rax, or 0 if an EOF is encountered
@@ -198,13 +196,13 @@ inpstream://file descriptor in parsefd(%rip), returns a string in %rax, or 0 if 
     movb $0, (%r9,%rcx)
     lea buf(%rip), %rax
     ret
-parse:
+parse://parses the script file
     parseloop:
     call inpstream
     mov %rax, %rdi
     movb streamdone(%rip), %al
     cmpb $1, %al
-    je end
+    je end//the input is compared to a series of tokens to check for equality, execute that one, parse next line
     manipulatefxn scale, dilate,.a
     manipulatefxn move, transform,.b
     shapefxn circle, 4, makecircle, applyedges, .c, edgem
@@ -257,7 +255,7 @@ mstrcmp://rdi is string 1, rsi is string 2
     yend:
     mov $1, %rax
     ret
-convert2: //string in rdi, length in rsi
+convert2: //string in rdi, length in rsi, converts a string to an integer, output in rax
     xor %rdx, %rdx
     xor %rcx, %rcx
     xor %rax, %rax

@@ -8,7 +8,7 @@
     pointo3: .double .1256637061
 .bss
 .text
-.macro twosides a,b,c
+.macro twosides a,b,c//draws two sides of a box
     vmovapd %ymm4, %ymm0
     vaddpd %ymm\b, %ymm4, %ymm1
     vaddpd %ymm\c, %ymm4, %ymm2
@@ -53,7 +53,7 @@ makebox://X,Y,Z in xmm0-2, h,w,d in xmm3-5
     //sides
     twosides 5,6,7
     ret
-quadrilateralface:
+quadrilateralface://draws quadrilateral for a box
     sub $176, %rsp
     vmovups %ymm1, (%rsp)
     vmovups %ymm2, 24(%rsp)
@@ -75,7 +75,7 @@ quadrilateralface:
     vmovups 144(%rsp), %ymm7
     add $176, %rsp
     ret
-quadrilateral:
+quadrilateral://draws quadrilateral for another kind of shape
     sub $80, %rsp
     vmovups %ymm1, (%rsp)
     vmovups %ymm2, 24(%rsp)
@@ -155,7 +155,7 @@ roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
     add $4, %rdx
 .endm
     
-maketorus:
+maketorus://matrix-ifies the tris for a torus
     mov %rdi, %r15
     push %r15
     call gentorus
@@ -192,7 +192,7 @@ maketorus:
     subq $3,24(%rax)
     pop %r15
     ret
-makesphere:
+makesphere://matrix-ifies the tris for a sphere
     mov %rdi, %r15
     push %r15
     call gensphere
@@ -246,7 +246,7 @@ makesphere:
     call free@PLT
     pop %r15
     ret
-gensphere:
+gensphere://generates the points for a sphere
     sub $32, %rsp
     vmovsd %xmm0, (%rsp)
     vmovsd %xmm1, 8(%rsp)
@@ -300,7 +300,7 @@ gensphere:
     mov tempmatrixG(%rip), %rax
     ret
 
-gentorus:
+gentorus://generates the points for a torus
     sub $40, %rsp
     vmovsd %xmm0, (%rsp)
     vmovsd %xmm1, 8(%rsp)

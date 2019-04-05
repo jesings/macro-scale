@@ -13,7 +13,7 @@ pi:
 matrixstart:
     .quad 0
 .text
-genmanipulate:
+genmanipulate://performs an manipulation (either scaling or translation) specified in rax to matrix specified in rdi
     push %r12
     mov %rdi, matrixstart(%rip)
     mov $4, %rdi
@@ -53,7 +53,7 @@ transform://takes 3 params, x,y,z offset in %xmm0-2, takes matrix in %rdi
     movsd %xmm1, 104(%rdi)
     movsd %xmm2, 112(%rdi)
     ret
-.macro rotall a,b,c,d
+.macro rotall a,b,c,d//the code in common for each rotation
     movsd %xmm0, \a(%rdi)
     movsd 16(%rsp), %xmm0
     movsd %xmm0, \b(%rdi)
@@ -64,16 +64,16 @@ transform://takes 3 params, x,y,z offset in %xmm0-2, takes matrix in %rdi
     movsd 24(%rsp), %xmm0
     movsd %xmm0, \d(%rdi)
 .endm
-rotatez://takes 1 param
+rotatez://takes 1 param, rotates about the z axis
     rotall 0,8,32,40
     ret
-rotatex://takes 1 param
+rotatex://takes 1 param, rotates about the x axis
     rotall 40,48,72,80
     ret
-rotatey://takes 1 param
+rotatey://takes 1 param, rotates about the y axis
     rotall 0,64,16,80
     ret
-genrotate:
+genrotate://rotates around axis specified in rax, matrix specified in rdi
     push %r12
     mov %rdi, matrixstart(%rip)
     sub $24, %rsp
@@ -105,7 +105,7 @@ genrotate:
     add $24, %rsp
     pop %r12
     ret
-deg2rad:
+deg2rad://converts degrees to radians
     movsd pi(%rip), %xmm1
     mulsd %xmm1, %xmm0
     mov   $180, %rax

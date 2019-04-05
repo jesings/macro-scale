@@ -2,9 +2,9 @@
 .global cspop
 .global cstop
 .data
-    cstop: .quad 0
+    cstop: .quad 0//top of coordinate system stack
 .text
-cspush:
+cspush://push to coordinate system stack
     mov $16, %rdi
     call malloc@PLT
     push %rax
@@ -18,11 +18,10 @@ cspush:
     mov %rsi, 8(%rax)
     mov %rax, cstop(%rip)
     ret
-cspop:
+cspop://pop from coordinate system stack
     mov cstop(%rip), %rdi
     mov (%rdi), %rdi
     call freematrix
-    //do some stuff first?
     mov cstop(%rip), %rdi
     mov 8(%rdi), %rsi
     mov %rsi, cstop(%rip)

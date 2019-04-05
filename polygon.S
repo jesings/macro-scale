@@ -9,7 +9,7 @@
     movsd \b(%rsp), %xmm1
     movsd \c(%rsp), %xmm2
 .endm
-addtri://%ymm0, %ymm1, %ymm2
+addtri://vertices packed x,y,z in %ymm0, %ymm1, %ymm2
     mov trim(%rip), %rdi
     sub $64, %rsp
     vmovupd %ymm1, (%rsp)
@@ -23,7 +23,7 @@ addtri://%ymm0, %ymm1, %ymm2
     call addpoint
     add $64, %rsp
     ret
-.macro bresenhamcaller a,b,c,d
+.macro bresenhamcaller a,b,c,d//calls bresenham from a list of stack offsets in order to draw a line
     mov $0xffffff, %rdi
     movsxd \a(%rsp), %rsi
     movsxd \b(%rsp), %rdx
@@ -31,7 +31,7 @@ addtri://%ymm0, %ymm1, %ymm2
     movsxd \d(%rsp), %r8
     call bresenham
 .endm
-drawtri://first point in ymm0, second point in ymm1, third point in ymm2
+drawtri://first point in ymm0, second point in ymm1, third point in ymm2, draws triangle
     sub $136,%rsp
     vmovups %ymm0,(%rsp)
     vmovups %ymm1,32(%rsp)
@@ -57,7 +57,7 @@ drawtri://first point in ymm0, second point in ymm1, third point in ymm2
     enddraw:
     add $136, %rsp
     ret
-drawtris://trimatrix AAAAAAAAAAAA
+drawtris://draws all triangles in the trimatrix
     mov trim(%rip), %rdi
     mov 24(%rdi), %rax
     mov (%rdi), %rdi
