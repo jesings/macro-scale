@@ -6,7 +6,6 @@
 .global parsefd
 .data
     x: .quad 0
-    pi: .double 3.141592658979
     half: .double .5
     name: .asciz "./image.ppm"
     parsefile: .asciz "./script"

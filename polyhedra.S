@@ -1,8 +1,6 @@
 .global makebox
 .global makesphere
 .global maketorus
-.global cos2
-.global sin2
 .data
     storage: .zero 64
     pointo3: .double .1256637061
@@ -90,11 +88,7 @@ quadrilateral://draws quadrilateral for another kind of shape
     call addtri
     add $80, %rsp
     ret
-roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
-    sub $32, %rsp
-    vmovsd %xmm3, (%rsp)
-    vcvtsi2sd %rsi, %xmm0, %xmm0
-    vcvtsi2sd %rdi, %xmm1, %xmm1
+.macro handlematrixtrig a, b, c, d, e
     vmulsd pointo3(%rip), %xmm0, %xmm0
     vmulsd pointo3(%rip), %xmm1, %xmm1
     vmovsd %xmm0, 8(%rsp)
@@ -110,19 +104,26 @@ roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
     mov tempmatrix4(%rip), %rdi
     mov (%rdi), %rdi
     mov one(%rip), %rax
-    mov %rax, (%rdi)
-    vmovsd %xmm0, 40(%rdi)
-    vmovsd %xmm0, 80(%rdi)
+    mov %rax, \a(%rdi)
+    vmovsd %xmm0, \b(%rdi)
+    vmovsd %xmm0, \c(%rdi)
     vmovsd 24(%rsp), %xmm0
-    vmovsd %xmm0, 48(%rdi)
+    vmovsd %xmm0, \d(%rdi)
     vxorpd %ymm1, %ymm1, %ymm1
     vsubsd %xmm0, %xmm1, %xmm0
-    vmovsd %xmm0, 72(%rdi)
+    vmovsd %xmm0, \e(%rdi)
     vmovsd 16(%rsp), %xmm0
     call sin2
     vmovsd %xmm0, 24(%rsp)
     vmovsd 16(%rsp), %xmm0
     call cos2
+.endm
+roundmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3
+    sub $32, %rsp
+    vmovsd %xmm3, (%rsp)
+    vcvtsi2sd %rsi, %xmm0, %xmm0
+    vcvtsi2sd %rdi, %xmm1, %xmm1
+    handlematrixtrig 0,40,80,48,72
     mov tempmatrixX(%rip), %rdi
     mov (%rdi), %rdi
     vmulsd (%rsp), %xmm0, %xmm0
@@ -246,28 +247,13 @@ makesphere://matrix-ifies the tris for a sphere
     call free@PLT
     pop %r15
     ret
-gensphere://generates the points for a sphere
-    sub $32, %rsp
-    vmovsd %xmm0, (%rsp)
-    vmovsd %xmm1, 8(%rsp)
-    vmovsd %xmm2, 16(%rsp)
-    vmovsd %xmm3, 24(%rsp)
-    mov $2500, %rdi
-    mov $32, %rsi
-    call calloc@PLT
-    mov %rax,tempmatrixG(%rip)
-    xor %rax, %rax
-    startrot:
-    xor %rcx, %rcx
-    startcirc:
-
-    vmovsd 24(%rsp), %xmm3
+.macro callmatrix matrix
     push %rax
     push %rcx
     mov %rdi, %rdx
     mov %rax, %rdi
     mov %rcx, %rsi
-    call roundmatrix
+    call \matrix
     pop %rcx
     pop %rax
     mov tempmatrixX(%rip), %rdi
@@ -288,11 +274,27 @@ gensphere://generates the points for a sphere
     add %rcx, %r8
     sal $2, %r8
     vmovupd %ymm0, (%rdx, %r8, 8)
-
     inc %rcx
     cmp $50, %rcx
-    jne startcirc
+.endm
 
+gensphere://generates the points for a sphere
+    sub $32, %rsp
+    vmovsd %xmm0, (%rsp)
+    vmovsd %xmm1, 8(%rsp)
+    vmovsd %xmm2, 16(%rsp)
+    vmovsd %xmm3, 24(%rsp)
+    mov $2500, %rdi
+    mov $32, %rsi
+    call calloc@PLT
+    mov %rax,tempmatrixG(%rip)
+    xor %rax, %rax
+    startrot:
+    xor %rcx, %rcx
+    startcirc:
+    vmovsd 24(%rsp), %xmm3
+    callmatrix roundmatrix
+    jne startcirc
     inc %rax
     cmp $50, %rax
     jne startrot
@@ -315,40 +317,10 @@ gentorus://generates the points for a torus
     startrotd:
     xor %rcx, %rcx
     startdonut:
-
     vmovsd 24(%rsp), %xmm3
     vmovsd 32(%rsp), %xmm4
-    push %rax
-    push %rcx
-    mov %rdi, %rdx
-    mov %rax, %rdi
-    mov %rcx, %rsi
-    call donutmatrix
-    pop %rcx
-    pop %rax
-    mov tempmatrixX(%rip), %rdi
-    mov (%rdi), %r8
-    vmovsd (%rsp), %xmm0
-    vmovsd 8(%rsp), %xmm1
-    vmovsd 16(%rsp), %xmm2
-    vaddsd (%r8), %xmm0, %xmm0
-    vmovsd %xmm0, (%r8)
-    vaddsd 8(%r8), %xmm1, %xmm1
-    vmovsd %xmm1, 8(%r8)
-    vaddsd 16(%r8), %xmm2, %xmm2
-    vmovsd %xmm2, 16(%r8)
-    vmovupd (%r8), %ymm0
-    mov tempmatrixG(%rip), %rdx
-    mov %rax, %r8
-    imul $50, %r8
-    add %rcx, %r8
-    sal $2, %r8
-    vmovupd %ymm0, (%rdx, %r8, 8)
-
-    inc %rcx
-    cmp $50, %rcx
+    callmatrix donutmatrix
     jne startdonut
-
     inc %rax
     cmp $50, %rax
     jle startrotd
@@ -362,34 +334,7 @@ donutmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3, Radius is 
     vmovsd %xmm4, 32(%rsp)
     cvtsi2sd %rdi, %xmm0
     cvtsi2sd %rsi, %xmm1
-    vmulsd pointo3(%rip), %xmm0, %xmm0
-    vmulsd pointo3(%rip), %xmm1, %xmm1
-    vmovsd %xmm0, 8(%rsp)
-    vmovsd %xmm1, 16(%rsp)
-    mov tempmatrix4(%rip), %rdi
-    lea blankmatrix(%rip), %rax
-    call forcematrix
-    vmovsd 8(%rsp), %xmm0
-    call sin2
-    vmovsd %xmm0, 24(%rsp)
-    vmovsd 8(%rsp), %xmm0
-    call cos2
-    mov tempmatrix4(%rip), %rdi
-    mov (%rdi), %rdi
-    mov one(%rip), %rax
-    mov %rax, 40(%rdi)
-    vmovsd %xmm0, (%rdi)
-    vmovsd %xmm0, 80(%rdi)
-    vmovsd 24(%rsp), %xmm0
-    vmovsd %xmm0, 64(%rdi)
-    vxorpd %ymm1, %ymm1, %ymm1
-    vsubsd %xmm0, %xmm1, %xmm0
-    vmovsd %xmm0, 16(%rdi)
-    vmovsd 16(%rsp), %xmm0
-    call sin2
-    vmovsd %xmm0, 24(%rsp)
-    vmovsd 16(%rsp), %xmm0
-    call cos2
+    handlematrixtrig 40, 0, 80,64,16
     vmovsd %xmm0, 8(%rsp)
     mov tempmatrixX(%rip), %rdi
     mov (%rdi), %rdi
@@ -410,28 +355,5 @@ donutmatrix://0-19 phi in rdi, 0-19 theta in rsi, radius is in %xmm3, Radius is 
     mov tempmatrixX(%rip), %rsi
     call multiplymatrix
     add $40, %rsp
-    ret
-
-cos2:
-    sub $4, %rsp
-    cvtsd2ss %xmm0, %xmm0
-    vmovss %xmm0, (%rsp)
-    fld (%rsp)
-    fcos
-    fstp (%rsp)
-    vmovss  (%rsp), %xmm0
-    cvtss2sd %xmm0, %xmm0
-    add $4, %rsp
-    ret
-sin2:
-    sub $4, %rsp
-    cvtsd2ss %xmm0, %xmm0
-    vmovss %xmm0, (%rsp)
-    fld (%rsp)
-    fsin
-    fstp (%rsp)
-    vmovss  (%rsp), %xmm0
-    cvtss2sd %xmm0, %xmm0
-    add $4, %rsp
     ret
 

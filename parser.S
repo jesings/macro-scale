@@ -51,7 +51,7 @@
     je \labelname
     argy 3
     cspeek
-    lea manip(%rip), %rax
+    lea \manip(%rip), %rax
     call genmanipulate
     jmp afterl
     \labelname:

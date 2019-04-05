@@ -5,7 +5,6 @@
 .global genmanipulate
 .global dilate
 .global transform
-.global deg2rad
 .data
 pi:
     .double 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
@@ -104,11 +103,4 @@ genrotate://rotates around axis specified in rax, matrix specified in rdi
     call freematrix
     add $24, %rsp
     pop %r12
-    ret
-deg2rad://converts degrees to radians
-    movsd pi(%rip), %xmm1
-    mulsd %xmm1, %xmm0
-    mov   $180, %rax
-    cvtsi2sd %rax, %xmm1
-    divsd %xmm1, %xmm0
     ret

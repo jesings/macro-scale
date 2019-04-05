@@ -4,11 +4,6 @@
     viewvect: .double 0, 1, 0, 0
 .bss
 .text
-.macro movsd3 a,b,c
-    movsd \a(%rsp), %xmm0
-    movsd \b(%rsp), %xmm1
-    movsd \c(%rsp), %xmm2
-.endm
 addtri://vertices packed x,y,z in %ymm0, %ymm1, %ymm2
     mov trim(%rip), %rdi
     sub $64, %rsp
@@ -17,9 +12,13 @@ addtri://vertices packed x,y,z in %ymm0, %ymm1, %ymm2
     vpermq $0b01, %ymm0, %ymm1
     vpermq $0b10, %ymm0, %ymm2
     call addpoint
-    movsd3 0,8,16
+    movsd 0(%rsp), %xmm0
+    movsd 8(%rsp), %xmm1
+    movsd 16(%rsp), %xmm2
     call addpoint
-    movsd3 32,40,48
+    movsd 32(%rsp), %xmm0
+    movsd 40(%rsp), %xmm1
+    movsd 48(%rsp), %xmm2
     call addpoint
     add $64, %rsp
     ret
